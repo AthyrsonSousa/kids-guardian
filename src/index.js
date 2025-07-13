@@ -53,4 +53,8 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: 'Erro interno do servidor.' });
 });
 
+app.listen(port, () => {
+  console.log(`🚀 API Kids Guardian (backend) rodando em http://localhost:${port}`);
+});
+
 module.exports = { app, supabase };
