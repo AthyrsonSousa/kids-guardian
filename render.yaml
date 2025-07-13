@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: kids-guardian-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/index.js
+    envVars:
+      - key: SUPABASE_URL
+        value: https://otpvmaqxuojdpffdscix.supabase.co
+      - key: SUPABASE_KEY
+        value: <eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90cHZtYXF4dW9qZHBmZmRzY2l4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTkyOTgxNSwiZXhwIjoyMDY3NTA1ODE1fQ.Pa6SFmrcnOunDYvK5BwfgC6lmVRiqIxzq-jEkTwqK4k>
+      - key: JWT_SECRET
+        value: R3wDb9m/ElpcKEDaMgmLTdtuLNYK+GBdrF0CUjAr6nKGyhFqcssmAsNrfvUkTCJNHte8i1gDV+Kpz/EyVMxGmg==
+    autoDeploy: true
