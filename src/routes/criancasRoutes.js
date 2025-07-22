@@ -8,7 +8,10 @@ const router = express.Router();
 // Middleware de autorização para administradores ou voluntários
 const authorizeUser = (req, res, next) => {
   if (!['administrador', 'voluntario'].includes(req.user.tipo)) {
-    return res.status(403).json({ success: false, message: 'Acesso negado: Somente administradores ou voluntários podem realizar esta operação.' });
+    return res.status(403).json({
+      success: false,
+      message: 'Acesso negado: Somente administradores ou voluntários podem realizar esta operação.'
+    });
   }
   next();
 };
@@ -119,15 +122,16 @@ router.get('/criancas/checkin', authenticateToken, authorizeUser, async (req, re
 
     if (erroCheckOuts) throw erroCheckOuts;
 
-    // Identificar crianças presentes (que fizeram check-in sem check-out posterior)
+    // Identificar crianças presentes (check-in sem check-out posterior)
     const presentesHoje = checkInsHoje.filter(checkIn => {
       const temCheckOutDepois = checkOutsHoje.some(checkOut =>
-        checkOut.crianca_id === checkIn.crianca_id && new Date(checkOut.data_hora) > new Date(checkIn.data_hora)
+        checkOut.crianca_id === checkIn.crianca_id &&
+        new Date(checkOut.data_hora) > new Date(checkIn.data_hora)
       );
       return !temCheckOutDepois;
     }).map(c => c.crianca_id);
 
-    // Buscar crianças ativas que não estão presentes hoje
+    // Buscar crianças ativas que ainda NÃO estão presentes
     const { data: criancas, error } = await supabase
       .from('criancas')
       .select('*')
@@ -138,14 +142,13 @@ router.get('/criancas/checkin', authenticateToken, authorizeUser, async (req, re
     if (error) throw error;
 
     res.json({ success: true, criancas });
-
   } catch (error) {
     console.error('Erro ao buscar crianças para check-in:', error);
     res.status(500).json({ success: false, message: 'Erro ao buscar crianças para check-in.' });
   }
 });
 
-// Listar crianças disponíveis para check-out (já fizeram check-in hoje e ainda não fizeram check-out)
+// Listar crianças disponíveis para check-out (fizeram check-in hoje e ainda não fizeram check-out)
 router.get('/criancas/checkout', authenticateToken, authorizeUser, async (req, res) => {
   try {
     const hoje = new Date();
@@ -153,27 +156,43 @@ router.get('/criancas/checkout', authenticateToken, authorizeUser, async (req, r
     const hojeFim = new Date(hoje.setHours(23, 59, 59, 999)).toISOString();
 
     // Buscar todos os check-ins do dia
-    const { data: presentesHoje, error: erroCheckin } = await supabase
+    const { data: checkInsHoje, error: erroCheckIns } = await supabase
       .from('registros')
-      .select('crianca_id')
+      .select('crianca_id, data_hora')
       .gte('data_hora', hojeInicio)
       .lte('data_hora', hojeFim)
       .eq('tipo', 'check-in');
 
-    if (erroCheckin) throw erroCheckin;
+    if (erroCheckIns) throw erroCheckIns;
 
-    const idsPresentes = presentesHoje.map(r => r.crianca_id);
+    // Buscar todos os check-outs do dia
+    const { data: checkOutsHoje, error: erroCheckOuts } = await supabase
+      .from('registros')
+      .select('crianca_id, data_hora')
+      .gte('data_hora', hojeInicio)
+      .lte('data_hora', hojeFim)
+      .eq('tipo', 'check-out');
 
-    if (idsPresentes.length === 0) {
+    if (erroCheckOuts) throw erroCheckOuts;
+
+    // Filtrar check-ins que não têm check-out posterior
+    const aindaPresentes = checkInsHoje.filter(checkIn => {
+      const temCheckOutDepois = checkOutsHoje.some(checkOut =>
+        checkOut.crianca_id === checkIn.crianca_id &&
+        new Date(checkOut.data_hora) > new Date(checkIn.data_hora)
+      );
+      return !temCheckOutDepois;
+    }).map(c => c.crianca_id);
+
+    if (aindaPresentes.length === 0) {
       return res.json({ success: true, criancas: [] });
     }
 
-    // Buscar crianças ativas que estão presentes (fizeram check-in)
     const { data: criancas, error } = await supabase
       .from('criancas')
       .select('*')
       .eq('is_active', true)
-      .in('id', idsPresentes)
+      .in('id', aindaPresentes)
       .order('nome', { ascending: true });
 
     if (error) throw error;
