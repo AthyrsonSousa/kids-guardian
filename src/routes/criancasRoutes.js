@@ -1,7 +1,11 @@
+// criancasRoutes.js
 const express = require('express');
 const { supabase } = require('../index');
 const { authenticateToken } = require('./authRoutes');
 const { authorizeAdmin } = require('./usuariosRoutes');
+// ⬇️ *** ADIÇÃO ***
+// Importa a nova função do utilitário
+const { getOperationalDayUTC } = require('./utils'); 
 
 const router = express.Router();
 
@@ -98,14 +102,20 @@ router.delete('/criancas/:id', authenticateToken, authorizeAdmin, async (req, re
 // Listar crianças disponíveis para check-in (não estão presentes hoje)
 router.get('/criancas/checkin', authenticateToken, authorizeUser, async (req, res) => {
   try {
-    const hoje = new Date();
-    const hojeInicio = new Date(hoje.setHours(0, 0, 0, 0)).toISOString();
-    const hojeFim = new Date(hoje.setHours(23, 59, 59, 999)).toISOString();
+    // ⬅️ *** LINHAS ANTIGAS REMOVIDAS ***
+    // const hoje = new Date();
+    // const hojeInicio = new Date(hoje.setHours(0, 0, 0, 0)).toISOString();
+    // const hojeFim = new Date(hoje.setHours(23, 59, 59, 999)).toISOString();
+
+    // ⬇️ *** CORREÇÃO ***
+    // Usa a função de utilitário para definir o dia operacional
+    const { inicio: hojeInicio, fim: hojeFim } = getOperationalDayUTC();
 
     // Buscar todos os check-ins do dia
     const { data: checkInsHoje, error: erroCheckIns } = await supabase
       .from('registros')
       .select('crianca_id, data_hora')
+      // ⬇️ *** LINHAS CORRIGIDAS ***
       .gte('data_hora', hojeInicio)
       .lte('data_hora', hojeFim)
       .eq('tipo', 'check-in');
@@ -116,6 +126,7 @@ router.get('/criancas/checkin', authenticateToken, authorizeUser, async (req, re
     const { data: checkOutsHoje, error: erroCheckOuts } = await supabase
       .from('registros')
       .select('crianca_id, data_hora')
+      // ⬇️ *** LINHAS CORRIGIDAS ***
       .gte('data_hora', hojeInicio)
       .lte('data_hora', hojeFim)
       .eq('tipo', 'check-out');
@@ -151,14 +162,20 @@ router.get('/criancas/checkin', authenticateToken, authorizeUser, async (req, re
 // Listar crianças disponíveis para check-out (fizeram check-in hoje e ainda não fizeram check-out)
 router.get('/criancas/checkout', authenticateToken, authorizeUser, async (req, res) => {
   try {
-    const hoje = new Date();
-    const hojeInicio = new Date(hoje.setHours(0, 0, 0, 0)).toISOString();
-    const hojeFim = new Date(hoje.setHours(23, 59, 59, 999)).toISOString();
+    // ⬅️ *** LINHAS ANTIGAS REMOVIDAS ***
+    // const hoje = new Date();
+    // const hojeInicio = new Date(hoje.setHours(0, 0, 0, 0)).toISOString();
+    // const hojeFim = new Date(hoje.setHours(23, 59, 59, 999)).toISOString();
+
+    // ⬇️ *** CORREÇÃO ***
+    // Usa a função de utilitário para definir o dia operacional
+    const { inicio: hojeInicio, fim: hojeFim } = getOperationalDayUTC();
 
     // Buscar todos os check-ins do dia
     const { data: checkInsHoje, error: erroCheckIns } = await supabase
       .from('registros')
       .select('crianca_id, data_hora')
+      // ⬇️ *** LINHAS CORRIGIDAS ***
       .gte('data_hora', hojeInicio)
       .lte('data_hora', hojeFim)
       .eq('tipo', 'check-in');
@@ -169,6 +186,7 @@ router.get('/criancas/checkout', authenticateToken, authorizeUser, async (req, r
     const { data: checkOutsHoje, error: erroCheckOuts } = await supabase
       .from('registros')
       .select('crianca_id, data_hora')
+      // ⬇️ *** LINHAS CORRIGIDAS ***
       .gte('data_hora', hojeInicio)
       .lte('data_hora', hojeFim)
       .eq('tipo', 'check-out');
