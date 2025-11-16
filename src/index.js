@@ -1,6 +1,8 @@
 // index.js
-const path = require('path'); // Certifique-se de que esta linha está presente
+const path = require('path');
+// Garante que o .env na pasta raiz seja carregado
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -17,44 +19,51 @@ if (!supabaseUrl || !supabaseKey) {
     process.exit(1);
 }
 
+// Inicializa o Supabase
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-exports.supabase = supabase;
+// Exporta o 'supabase' para ser usado em outros arquivos (como nas rotas)
+// Esta é a forma correta de compartilhar a conexão do Supabase
+module.exports = { supabase };
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(morgan('dev')); // Logger de requisições
 
-// Altere ESTAS DUAS LINHAS:
-// const authRoutes = require('./routes/authRoutes').router;
-// const authenticateToken = authRoutes.authenticateToken;
-// PARA ISSO:
-const { router: authRouter } = require('./routes/authRoutes'); // Importa o router de authRoutes
-const criancasRoutes = require('./routes/criancasRoutes');
-const registrosRoutes = require('./routes/registrosRoutes');
-const usuariosRoutes = require('./routes/usuariosRoutes').router; // <--- ADICIONE .router AQUI!
+// Importação das Rotas
+// Padronizando a importação para maior clareza
+const { router: authRouter } = require('./routes/authRoutes');
+const criancasRouter = require('./routes/criancasRoutes');
+const registrosRouter = require('./routes/registrosRoutes');
+const { router: usuariosRouter } = require('./routes/usuariosRoutes');
 
-// Aplica as rotas da API
-app.use('/api', authRouter); // <--- Use authRouter aqui
-app.use('/api', criancasRoutes);
-app.use('/api', registrosRoutes);
-app.use('/api', usuariosRoutes);
+// Aplica as rotas da API (todas com prefixo /api)
+app.use('/api', authRouter);
+app.use('/api', criancasRouter);
+app.use('/api', registrosRouter);
+app.use('/api', usuariosRouter);
 
+// Rota raiz para teste
 app.get('/', (req, res) => {
     res.send('🎉 API do Kids Guardian está funcionando!');
 });
 
+// Middleware para Rota Não Encontrada (404)
 app.use((req, res, next) => {
     res.status(404).json({ success: false, message: 'Rota não encontrada.' });
 });
 
+// Middleware de Tratamento de Erro (500)
 app.use((err, req, res, next) => {
     console.error('Erro interno do servidor:', err.stack);
     res.status(500).json({ success: false, message: 'Erro interno do servidor.' });
 });
 
+// Inicia o servidor
 app.listen(port, () => {
-  console.log(`🚀 API Kids Guardian (backend) rodando em http://localhost:${port}`);
+  console.log(`🚀 API Kids Guardian (backend) rodando na porta ${port}`);
 });
 
-module.exports = { app, supabase };
+// Não é mais necessário exportar 'app' aqui, a menos que para testes
+// module.exports = { app, supabase };
