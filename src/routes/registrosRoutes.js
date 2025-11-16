@@ -2,6 +2,9 @@
 const express = require('express');
 const { supabase } = require('../index');
 const { authenticateToken } = require('./authRoutes'); // Importa o middleware de autenticação
+// ⬇️ *** ADIÇÃO ***
+// Importa a nova função do utilitário
+const { getOperationalDayUTC } = require('./utils'); 
 
 const router = express.Router();
 
@@ -147,7 +150,11 @@ router.post('/registros/checkout', authenticateToken, authorizeUser, async (req,
 // Obter estatísticas do dashboard
 router.get('/registros/estatisticas', authenticateToken, authorizeUser, async (req, res) => {
     try {
-        const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        // const today = new Date().toISOString().split('T')[0]; // ⬅️ *** LINHA ANTIGA REMOVIDA ***
+
+        // ⬇️ *** CORREÇÃO ***
+        // Usa a função de utilitário para definir o dia operacional
+        const { inicio: hojeInicio, fim: hojeFim } = getOperationalDayUTC();
 
         // Total de crianças cadastradas
         const { count: totalCriancasCadastradas, error: countError } = await supabase
@@ -161,8 +168,9 @@ router.get('/registros/estatisticas', authenticateToken, authorizeUser, async (r
             .from('registros')
             .select('crianca_id, data_hora')
             .eq('tipo', 'check-in')
-            .gte('data_hora', `${today}T00:00:00.000Z`)
-            .lt('data_hora', `${today}T23:59:59.999Z`);
+            // ⬇️ *** LINHAS CORRIGIDAS ***
+            .gte('data_hora', hojeInicio)
+            .lt('data_hora', hojeFim);
 
         if (checkInError) throw checkInError;
 
@@ -171,8 +179,9 @@ router.get('/registros/estatisticas', authenticateToken, authorizeUser, async (r
             .from('registros')
             .select('crianca_id, data_hora')
             .eq('tipo', 'check-out')
-            .gte('data_hora', `${today}T00:00:00.000Z`)
-            .lt('data_hora', `${today}T23:59:59.999Z`);
+            // ⬇️ *** LINHAS CORRIGIDAS ***
+            .gte('data_hora', hojeInicio)
+            .lt('data_hora', hojeFim);
 
         if (checkOutError) throw checkOutError;
 
